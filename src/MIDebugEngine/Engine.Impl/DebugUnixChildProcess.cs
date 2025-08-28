@@ -106,6 +106,16 @@ namespace Microsoft.MIDebugEngine
             }
         }
 
+        private async Task switchParentInferior() {
+            uint parentInferiorId = _process.InferiorByPid((int)_process.Id.dwProcessId);
+            if (parentInferiorId > 0) {
+                await _process.ConsoleCmdAsync("inferior " + parentInferiorId.ToString(CultureInfo.InvariantCulture), allowWhileRunning: false);
+            } else {
+                // fallback to first inferior
+                await _process.ConsoleCmdAsync("inferior 1", allowWhileRunning: false);
+            }
+        }
+
         private async Task<bool> DetachAndContinue(ThreadProgress state)
         {
             await DetachFromChild(state);
@@ -117,6 +127,7 @@ namespace Microsoft.MIDebugEngine
             _launchOptions.BaseOptions.ProcessIdSpecified = true;
             _launchOptions.BaseOptions.ExePath = state.Exe ?? _launchOptions.ExePath;
             HostDebugger.StartDebugChildProcess(_launchOptions.BaseOptions.ExePath, _launchOptions.GetOptionsString(), engineGuid);
+            await switchParentInferior();
             await _process.MICommandFactory.ExecContinue();     // continue the parent
             return true;   // parent is running
         }
@@ -149,7 +160,7 @@ namespace Microsoft.MIDebugEngine
                 return false;    // cannot process the child
             await _process.ConsoleCmdAsync("inferior " + inf.ToString(CultureInfo.InvariantCulture), allowWhileRunning: false);
             await _process.MICommandFactory.TargetDetach();     // detach from the child
-            await _process.ConsoleCmdAsync("inferior 1", allowWhileRunning: false);
+            await switchParentInferior();
             return true;
         }
 
