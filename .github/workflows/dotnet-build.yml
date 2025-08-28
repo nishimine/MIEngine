@@ -1,0 +1,135 @@
+name: .NET Build and Artifacts
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies (Windows)
+      run: dotnet restore src/MIDebugEngine.sln
+    
+    - name: Build (Windows)
+      run: dotnet build src/MIDebugEngine.sln --no-restore --configuration Release
+    
+    - name: Upload Windows build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-windows
+        path: |
+          src/**/bin/Release/**/*
+          bin/**/Release/**/*
+          !src/**/bin/Release/**/*.pdb
+          !bin/**/Release/**/*.pdb
+        retention-days: 30
+
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies (Linux x64)
+      run: dotnet restore src/MIDebugEngine-Unix.sln
+    
+    - name: Build (Linux x64)
+      run: dotnet build src/MIDebugEngine-Unix.sln --no-restore --configuration Release
+    
+    - name: Upload Linux x64 build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-linux-x64
+        path: |
+          src/**/bin/Release/**/*
+          bin/**/Release/**/*
+          !src/**/bin/Release/**/*.pdb
+          !bin/**/Release/**/*.pdb
+        retention-days: 30
+
+  build-linux-arm64:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies (Linux ARM64)
+      run: dotnet restore src/MIDebugEngine-Unix.sln
+    
+    - name: Restore for ARM64 runtime (Linux ARM64)
+      run: dotnet restore src/OpenDebugAD7/OpenDebugAD7.csproj --runtime linux-arm64
+    
+    - name: Publish (Linux ARM64)
+      run: dotnet publish src/OpenDebugAD7/OpenDebugAD7.csproj --no-restore --configuration Release --runtime linux-arm64 --self-contained false
+    
+    - name: Build other projects (Linux ARM64)
+      run: dotnet build src/MIDebugEngine-Unix.sln --no-restore --configuration Release
+    
+    - name: Upload Linux ARM64 build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-linux-arm64
+        path: |
+          src/**/bin/Release/**/*
+          bin/**/Release/**/*
+          src/**/publish/**/*
+          !src/**/bin/Release/**/*.pdb
+          !bin/**/Release/**/*.pdb
+        retention-days: 30
+
+  build-macos-arm64:
+    runs-on: macos-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    
+    - name: Restore dependencies (macOS ARM64)
+      run: dotnet restore src/MIDebugEngine-Unix.sln
+    
+    - name: Restore for ARM64 runtime (macOS ARM64)
+      run: dotnet restore src/OpenDebugAD7/OpenDebugAD7.csproj --runtime osx-arm64
+    
+    - name: Publish (macOS ARM64)
+      run: dotnet publish src/OpenDebugAD7/OpenDebugAD7.csproj --no-restore --configuration Release --runtime osx-arm64 --self-contained false
+    
+    - name: Build other projects (macOS ARM64)
+      run: dotnet build src/MIDebugEngine-Unix.sln --no-restore --configuration Release
+    
+    - name: Upload macOS ARM64 build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: build-artifacts-macos-arm64
+        path: |
+          src/**/bin/Release/**/*
+          bin/**/Release/**/*
+          src/**/publish/**/*
+          !src/**/bin/Release/**/*.pdb
+          !bin/**/Release/**/*.pdb
+        retention-days: 30
